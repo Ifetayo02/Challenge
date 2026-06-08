@@ -1,13 +1,35 @@
-const http=require('http')
-const server= http.createServer((req,res)=>{
-    if (req.method ==='GET' && req.url=='/'){
-        res.writeHead(200,{'Content-Type':'application/json'})
-        res.end(JSON.stringify({message:'Hello World'}))
-}else{
-    res.writeHead(404,{'Content-Type':'application/json'})
-    res.end(JSON.stringify({message:'Not Found'}))
-}
-});
-server.listen(3000,()=>{
-    console.log('Server is running on port 3000')
+const express=require('express');
+const app=express();
+const router=express.Router();
+const tasks=[
+    {
+        id:1,
+        title:'learn raw node.js'
+    },
+    {
+        id:2,
+        title:'learn express.js'
+    },
+    {
+        id:3,
+        title:'Get familiar with requests type'
+
+    }
+]
+
+router.get('/',(req,res)=>{
+    res.json(tasks);
+})
+router.get('/:id',(req,res)=>{
+    const id=parseInt(req.params.id,10);
+    const task=tasks.find(task=>task.id===id);
+    if (!task) {
+        return res.status(404).json({message:'Task not found'});
+    }res.json(task);
+})
+const port=3000;
+
+app.use('/tasks',router);
+app.listen(port,()=>{
+    console.log(`Server is running on port ${port}`);
 })
