@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express=require('express');
 const app=express();
 const router=express.Router();
@@ -27,7 +28,7 @@ router.get('/:id',(req,res)=>{
         return res.status(404).json({message:'Task not found'});
     }res.json(task);
 })
-const port=3000;
+const port=process.env.PORT || 5634;
 
 app.use('/tasks',router);
 app.listen(port,()=>{
