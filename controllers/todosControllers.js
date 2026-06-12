@@ -36,16 +36,7 @@ const getTodoById= (req,res)=>{
     }
     res.json(todo);
 };
-const createTodo= (req,res)=>{
-    const {title,completed}=req.body;
-    const newTodo={
-        id:todos.length+1,
-        title,
-        completed
-    };
-    todos.push(newTodo);
-    res.status(201).json(newTodo);
-};
+
 const editTodo= (req,res)=>{
      const id=parseInt(req.params.id,10);
     const todo=todos.find(todo=>todo.id===id);
