@@ -1,11 +1,13 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const Task = require('./taskModel.js');
-const PORT=process.env.port
+
+const Task = require('./models/taskModel');
+const port=process.env.PORT
 
 const app = express();
 app.use(express.json());
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect("mongodb+srv://Ifetayo:Olanrewaju2012@cluster0.5hskv9a.mongodb.net/Challenge")
     .then(() => {
         console.log('Connected to MongoDB');
     })
@@ -51,6 +53,6 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(PORT, () => { 
-    console.log(`Server is running on port ${PORT}`);
+app.listen(7000, () => { 
+    console.log(`Server is running on port 7000`);
 });
