@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const { body, validationResult } = require('express-validator');
 
 const Task = require('./models/taskModel');
 const port=process.env.PORT
@@ -14,28 +15,34 @@ mongoose.connect(process.env.MONGODB_URI)
     .catch((err) => {
         console.error('MongoDB connection error:', err.message);
     });
-app.post('/tasks', async (req, res, next) => {
+app.post('/tasks',[
+    body('title')
+    .notEmpty().withMessage('Title is required')
+    .isLength({ min: 3 }).withMessage('Title must be at least 3 characters long')
+    .isLength({ max: 100 }).withMessage('Title cannot exceed 100 characters'),
+    body('description')
+    .trim()
+    .notEmpty().withMessage('Description is required'),
+    body('priority')
+    .isIn(['low', 'medium', 'high']).withMessage('Invalid priority value')
+], async (req, res, next) => {
     try {
-        const { title, description, status } = req.body;
-        if (!title || title.trim() === "") {
-            const error = new Error('Title is required');
-            error.statusCode = 400;
-            return next(error);
+        const errors = validationResult(req);
+        if(!errors.isEmpty()) {
+           return res.status(400).json({
+                success: false,
+                errors: errors.array().map(err => ({
+                    field: err.path,
+                    message: err.msg
+                }))
+            });
         }
-
-        const newTask = new Task({
-            title,
-            description,
-            status
-        });
-
+      const { title, description, status, priority } = req.body;
+        const newTask = new Task({ title, description, status, priority });
         const savedTask = await newTask.save();
-        
-
-        res.status(201).json({
+   res.status(201).json({
             success: true,
-            data: savedTask,
-            id: savedTask._id 
+            data: savedTask
         });
     } catch (err) {
         next(err); 
