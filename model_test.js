@@ -50,12 +50,31 @@ app.post('/tasks',[
 });
 app.get('/tasks',async (req, res, next) => {
     try{
-        const tasks = await Task.find();
+          const queryObj={};
+        if(req.query.status){
+            queryObj.status=req.query.status;
+        }
+        if(req.query.priority){
+            queryObj.priority=req.query.priority;
+        }
+        const page=parseInt(req.query.page,10) || 1;
+        const limit=parseInt(req.query.limit,10) || 10;
+        const skip=(page-1)*limit;
+        let result=Task.find(queryObj)
+        if (req.query.sort){
+            result=result.sort(req.query.sort)
+        }else{
+            result=result.sort('-createdAt')
+        }
+        result=result.skip(skip).limit(limit);
+        const tasks = await result;
+        const totalTasks = await Task.countDocuments(queryObj);
+        const totalPages = Math.ceil(totalTasks / limit);
         res.status(200).json({
-            success: true,
-            data: tasks,
-            count: tasks.length
-
+            tasks,            
+            total: totalTasks,
+            page,             
+            pages: totalPages  
         })
     }catch(err){
         next(err);
@@ -63,7 +82,7 @@ app.get('/tasks',async (req, res, next) => {
 });
 app.get('/tasks/:id', async (req, res, next) => {
     try {
-        const task = await Task.findById(req.params.id);
+      
         if (!task) {
             const error = new Error('Task not found');
             error.statusCode = 404;
