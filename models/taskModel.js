@@ -21,7 +21,13 @@ const taskSchema = new mongoose.Schema({
             values: ['pending', 'in-progress', 'done'],
             message: '{VALUE} is not a valid status'
         },
-        default: 'pending'
+        default: 'pending',
+        index:true
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: [true,'A task must belong to a user']
     },
     priority: {
         type: String,

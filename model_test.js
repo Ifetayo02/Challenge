@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 
 const Task = require('./models/taskModel');
+const User= require('./models/userModel');
 const port=process.env.PORT
 
 const app = express();
@@ -15,6 +16,36 @@ mongoose.connect(process.env.MONGODB_URI)
     .catch((err) => {
         console.error('MongoDB connection error:', err.message);
     });
+    mongoose.connection.on('error', err => {
+  console.error('Mongoose runtime error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected');
+});
+app.post('/users',async (req, res, next) => {
+    try {
+        const { name, email } = req.body;
+        if (!name || !email) {
+            const error = new Error('Name and email are required');
+            error.statusCode = 400;
+            return next(error);
+        }
+        const newUser = new User({ name, email });
+        const savedUser = await newUser.save();
+        res.status(201).json({
+            success: true,
+            data: savedUser
+        });
+    }catch (err) {
+        if (err.code === 11000) {
+            const error = new Error('Email already registered');
+            error.statusCode = 400;
+            return next(error);
+        }
+        next(err);
+    }
+});
 app.post('/tasks',[
     body('title')
     .notEmpty().withMessage('Title is required')
@@ -37,8 +68,8 @@ app.post('/tasks',[
                 }))
             });
         }
-      const { title, description, status, priority } = req.body;
-        const newTask = new Task({ title, description, status, priority });
+      const { title, description, status, priority,user } = req.body;
+        const newTask = new Task({ title, description, status, priority,user});
         const savedTask = await newTask.save();
    res.status(201).json({
             success: true,
@@ -82,7 +113,7 @@ app.get('/tasks',async (req, res, next) => {
 });
 app.get('/tasks/:id', async (req, res, next) => {
     try {
-      
+      const task=await Task.findById(req.params.id).populate('user')
         if (!task) {
             const error = new Error('Task not found');
             error.statusCode = 404;
