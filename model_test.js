@@ -9,6 +9,8 @@ const port=process.env.PORT
 
 const app = express();
 app.use(express.json());
+const authRouter = require('./routes/authRoutes');
+app.use('/auth', authRouter);
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log('Connected to MongoDB');
