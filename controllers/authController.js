@@ -9,14 +9,14 @@ const registerUser=async(req,res,next)=>{
         return next(error)
     }
 const newUser=await User.create({name,email,password});
-const userResponse=new User.Object();
+const userResponse=new User.toObject();
 delete userResponse.password;
 res.status(201).json({
             success: true,
             data: userResponse
         })
     }catch (error) {
-        error.statusCode = 400;
+          if (!error.statusCode) error.statusCode = 400
         next(error);
     }
 }
