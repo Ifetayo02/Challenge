@@ -10,7 +10,10 @@ const app = express();
 app.use(express.json());
 
 const authRouter = require('./routes/authRoutes');
+const todoRouter = require('./routes/todosRoutes');
+const { protect } = require('./middleware/auth');
 app.use('/auth', authRouter);
+app.use('/tasks', protect, todoRouter);
 
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
