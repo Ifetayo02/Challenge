@@ -19,14 +19,17 @@ const getAllTodos = async (req, res, next) => {
 
 const getTodoById = async (req, res, next) => {
     try {
-        const todo = await Task.findOne({ _id: req.params.id, user: req.user.id });
-
-        if (!todo) {
+        const Todo = await Task.findById(req.params.id);
+        if (!Todo) {
             const error = new Error('Todo not found or unauthorized');
             error.statusCode = 404;
             return next(error);
         }
-
+        if(todo.user.toString() !== req.user.id){
+            const error = new Error('Forbidden: You do not have permission to view this task');
+            error.statusCode = 403;
+            return next(error); 
+        }
         res.status(200).json({
             success: true,
             data: todo
@@ -67,18 +70,24 @@ const createTodo = async (req, res, next) => {
 
 const editTodo = async (req, res, next) => {
     try {
-        const updatedTodo = await Task.findOneAndUpdate(
-            { _id: req.params.id, user: req.user.id }, 
-            req.body,
-            { returnDocument: 'after', runValidators: true }
-        );
-
-        if (!updatedTodo) {
+        const Todo = await Task.findById(req.params.id);
+            if (!Todo) {
             const error = new Error('Todo not found or unauthorized');
             error.statusCode = 404;
             return next(error);
         }
 
+            if(todo.user.toString() !== req.user.id){
+            const error = new Error('Forbidden: You do not have permission to modify this task');
+            error.statusCode = 403;
+            return next(error); 
+        }
+
+        const updatedTodo = await Task.findByIdAndUpdate(
+            req.params.id, 
+            req.body,
+            { returnDocument: 'after', runValidators: true }
+        );
         res.status(200).json({
             success: true,
             data: updatedTodo
@@ -88,21 +97,35 @@ const editTodo = async (req, res, next) => {
     }
 };
 
-
 const deleteTodo = async (req, res, next) => {
     try {
-        const deletedTodo = await Task.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+        const todo = await Task.findById(req.params.id);
 
-        if (!deletedTodo) {
-            const error = new Error('Todo not found or unauthorized');
+        if (!todo) {
+            const error = new Error('Todo item not found');
             error.statusCode = 404;
             return next(error);
         }
+        const taskOwnerId = todo.user ? todo.user.toString() : null;
+        const loggedInUserId = req.user.id || req.user._id;
+
+        if (!taskOwnerId) {
+            const error = new Error('This task contains no owner field validation reference');
+            error.statusCode = 400;
+            return next(error);
+        }
+
+        if (taskOwnerId !== loggedInUserId) {
+            const error = new Error('Forbidden: You do not have permission to delete this task');
+            error.statusCode = 403; 
+            return next(error); 
+        }
+
+        await todo.deleteOne();
 
         res.status(200).json({
             success: true,
-            message: 'Todo item deleted successfully',
-            data: deletedTodo
+            message: 'Todo item deleted successfully'
         });
     } catch (error) {
         next(error);

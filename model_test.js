@@ -152,24 +152,6 @@ app.put('/tasks/:id', async (req, res, next) => {
     }
 });
 
-app.delete('/tasks/:id', async (req, res, next) => {
-    try {
-        const deletedTask = await Task.findByIdAndDelete(req.params.id);
-
-        if (!deletedTask) {
-            const error = new Error('Task not found');
-            error.statusCode = 404;
-            return next(error);
-        }
-        res.status(200).json({
-            success: true,
-            data: deletedTask
-        });
-    } catch (err) {
-        next(err);
-    }
-});
-
 app.use((err, req, res, next) => {
     let statusCode = err.statusCode || 500;
     let message = err.message || 'Internal Server Error';
