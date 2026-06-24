@@ -1,13 +1,16 @@
 require('dotenv').config();
 const express = require('express');
+const app = express();
+app.use(express.json());
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 const { body, validationResult } = require('express-validator');
 
 const Task = require('./models/taskModel');
 const port = process.env.PORT || 7000;
 
-const app = express();
-app.use(express.json());
+
 
 const authRouter = require('./routes/authRoutes');
 const todoRouter = require('./routes/todosRoutes');
