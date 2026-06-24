@@ -1,10 +1,6 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
-// ==========================================
-// 1. REGISTER USER
-// ==========================================
 const registerUser = async (req, res, next) => {
     try {
         const { name, email, password } = req.body;
@@ -29,10 +25,6 @@ const registerUser = async (req, res, next) => {
         next(error);
     }
 };
-
-// ==========================================
-// 2. LOGIN USER (With Dual Token Cookie Delivery)
-// ==========================================
 const loginUser = async (req, res, next) => {
     try {
         const { email, password } = req.body;
@@ -69,16 +61,12 @@ const loginUser = async (req, res, next) => {
         
         user.refreshToken = refreshToken;
         await user.save();
-
-        // 🎯 FIX: Added missing comma before the options configuration block
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production', 
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-
-        // 🎯 FIX: Corrected spelling to match variable 'accessToken'
         return res.status(200).json({
             success: true,
             accessToken
@@ -87,10 +75,6 @@ const loginUser = async (req, res, next) => {
         next(error);
     }
 };
-
-// ==========================================
-// 3. REFRESH ACCESS TOKEN
-// ==========================================
 const refreshAccessToken = async (req, res, next) => {
     try {
         const cookies = req.cookies;
@@ -126,10 +110,6 @@ const refreshAccessToken = async (req, res, next) => {
         next(error);
     }
 };
-
-// ==========================================
-// 4. LOGOUT USER
-// ==========================================
 const logoutUser = async (req, res, next) => {
     try {
         const cookies = req.cookies;
@@ -149,8 +129,6 @@ const logoutUser = async (req, res, next) => {
         next(error);
     }
 };
-
-// 🎯 FIX: Corrected spelling inside exports block mapping object
 module.exports = { 
     registerUser, 
     loginUser, 
