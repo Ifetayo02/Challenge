@@ -1,5 +1,28 @@
 
-const Task = require('../models/taskModel'); 
+
+const Task = require('../models/taskModel');
+const AppError = require('../middleware/appError');
+const asyncHandler = require('../middleware/asyncHandler');
+const deleteTodo = asyncHandler(async (req, res, next) => {
+    const todo = await Task.findById(req.params.id);
+
+    // If an ID looks valid but doesn't exist, throw a custom AppError
+    if (!todo) {
+        return next(new AppError('Todo item not found', 404));
+    }
+
+    // Day 18 Ownership Handshake
+    if (todo.user.toString() !== req.user.id) {
+        return next(new AppError('Forbidden: You do not have permission to delete this task', 403));
+    }
+
+    await todo.deleteOne();
+
+    res.status(200).json({
+        success: true,
+        message: 'Todo item deleted successfully'
+    });
+});
 
 
 const getAllTodos = async (req, res, next) => {
@@ -97,40 +120,6 @@ const editTodo = async (req, res, next) => {
     }
 };
 
-const deleteTodo = async (req, res, next) => {
-    try {
-        const todo = await Task.findById(req.params.id);
-
-        if (!todo) {
-            const error = new Error('Todo item not found');
-            error.statusCode = 404;
-            return next(error);
-        }
-        const taskOwnerId = todo.user ? todo.user.toString() : null;
-        const loggedInUserId = req.user.id || req.user._id;
-
-        if (!taskOwnerId) {
-            const error = new Error('This task contains no owner field validation reference');
-            error.statusCode = 400;
-            return next(error);
-        }
-
-        if (taskOwnerId !== loggedInUserId) {
-            const error = new Error('Forbidden: You do not have permission to delete this task');
-            error.statusCode = 403; 
-            return next(error); 
-        }
-
-        await todo.deleteOne();
-
-        res.status(200).json({
-            success: true,
-            message: 'Todo item deleted successfully'
-        });
-    } catch (error) {
-        next(error);
-    }
-};
 module.exports = {
     getAllTodos,
     getTodoById,

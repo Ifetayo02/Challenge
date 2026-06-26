@@ -10,6 +10,7 @@ const cookieParser = require('cookie-parser');
 const authRouter = require('./routes/authRoutes');
 const todoRouter = require('./routes/todosRoutes');
 const { protect } = require('./middleware/auth');
+const globalErrorHandler = require('./middleware/errorMiddleware');
 const port = process.env.PORT || 7000;
 app.use((req, res, next) => {
     Object.defineProperty(req, 'query', { value: req.query, writable: true, configurable: true });
@@ -34,7 +35,7 @@ const globalLimiter = rateLimit({
     standardHeaders: true, 
     legacyHeaders: false, 
 });
-app.use(globalLimiter);
+app.use(globalLimiter); 
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
@@ -45,6 +46,7 @@ const authLimiter = rateLimit({
 });
 app.use('/auth', authLimiter, authRouter); 
 app.use('/tasks', protect, todoRouter); 
+app.use(globalErrorHandler);
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log('Connected to MongoDB');
@@ -59,25 +61,6 @@ mongoose.connection.on('error', err => {
 
 mongoose.connection.on('disconnected', () => {
     console.warn('MongoDB disconnected');
-});
-app.use((err, req, res, next) => {
-    let statusCode = err.statusCode || 500;
-    let message = err.message || 'Internal Server Error';
-
-    if (err.name === 'CastError' && err.kind === 'ObjectId') {
-        statusCode = 400;
-        message = `Malformatted ID: "${err.value}", please provide a valid ID.`;
-    }
-
-    if (err.type === 'entity.parse.failed') {
-        statusCode = 400;
-        message = 'Invalid JSON in request body';
-    }
-
-    res.status(statusCode).json({
-        success: false,
-        error: message
-    });
 });
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
