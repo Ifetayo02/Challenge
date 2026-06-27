@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser,refreshAccessToken,logoutUser } = require('../controllers/authController');
-
+const { registerUser, loginUser,refreshAccessToken,logoutUser,updateAvatar} = require('../controllers/authController');
+const { protect } = require('../middleware/auth'); 
+const upload = require('../middleware/upload');
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-router.post('/refresh', refreshAccessToken); // 💡 Ensure exact spelling matches!
+router.post('/refresh', refreshAccessToken);
 router.post('/logout', logoutUser);
+router.patch('/me/avatar', protect, upload.single('avatar'),updateAvatar);
 module.exports = router;

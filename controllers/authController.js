@@ -1,6 +1,8 @@
 const User = require('../models/userModel');
+const cloudinary = require('cloudinary').v2;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const asyncHandler=require('../middleware/asyncHandler')
 const registerUser = async (req, res, next) => {
     try {
         const { name, email, password } = req.body;
@@ -129,9 +131,43 @@ const logoutUser = async (req, res, next) => {
         next(error);
     }
 };
+cloudinary.config({
+  cloudinary:process.env.CLOUDINARY_URL
+});
+
+const updateAvatar = asyncHandler(async (req, res, next) => {
+    // Check if file parser successfully picked up the image block
+    if (!req.file) {
+        return next(new AppError('Please select an image file to upload.', 400));
+    }
+
+    // 🚀 Stream upload processing directly out of memory buffer
+    cloudinary.uploader.upload_stream(
+        { folder: 'user_avatars' }, // Keeps your Cloudinary console organized
+        async (error, result) => {
+            if (error) {
+                return next(new AppError('Cloudinary file dispatch engine failed.', 500));
+            }
+
+            // Save the newly minted cloud image URL onto our database user document
+            const updatedUser = await User.findByIdAndUpdate(
+                req.user.id, // Derived from your 'protect' middleware layer
+                { avatarUrl: result.secure_url },
+                { new: true, runValidators: true }
+            ).select('-password');
+
+            res.status(200).json({
+                success: true,
+                message: 'Avatar media file synced cleanly!',
+                data: updatedUser
+            });
+        }
+    ).end(req.file.buffer); // Push the file bits down the pipe channel
+});
 module.exports = { 
     registerUser, 
     loginUser, 
     refreshAccessToken, 
-    logoutUser
+    logoutUser,
+    updateAvatar
 };

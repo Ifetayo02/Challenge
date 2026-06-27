@@ -17,7 +17,11 @@ const userSchema = new mongoose.Schema({
             type: String,
         required: [true, 'Password is required'],
     },
-    refreshToken: {
+avatarUrl: {
+    type: String,
+    default: 'https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg' 
+},
+refreshToken: {
     type: String
 }
 },
