@@ -1,127 +1,74 @@
-
-
 const Task = require('../models/taskModel');
-const AppError = require('../middleware/appError');
 const asyncHandler = require('../middleware/asyncHandler');
-const deleteTodo = asyncHandler(async (req, res, next) => {
-    const todo = await Task.findById(req.params.id);
 
-    // If an ID looks valid but doesn't exist, throw a custom AppError
-    if (!todo) {
-        return next(new AppError('Todo item not found', 404));
+const getTodos = asyncHandler(async (req, res, next) => {
+    // 💡 1. BUILD THE QUERY OBJECT
+    const queryObj = { user: req.user.id }; // Maintain user-scoped data isolation
+
+    // A. Full-Text Search Handler (?search=keyword)
+    if (req.query.search) {
+        queryObj.$text = { $search: req.query.search };
     }
 
-    // Day 18 Ownership Handshake
-    if (todo.user.toString() !== req.user.id) {
-        return next(new AppError('Forbidden: You do not have permission to delete this task', 403));
+    // B. Basic Field Filters (status, priority)
+    if (req.query.status) queryObj.status = req.query.status;
+    if (req.query.priority) queryObj.priority = req.query.priority;
+
+    // C. Dynamic Date Range Filters (?createdAfter=2026-06-01&createdBefore=2026-06-28)
+    if (req.query.createdAfter || req.query.createdBefore) {
+        queryObj.createdAt = {};
+        if (req.query.createdAfter) {
+            queryObj.createdAt.$gte = new Date(req.query.createdAfter); // Greater than or equal to
+        }
+        if (req.query.createdBefore) {
+            queryObj.createdAt.$lte = new Date(req.query.createdBefore); // Less than or equal to
+        }
     }
 
-    await todo.deleteOne();
+    // 💡 2. EXECUTE QUERY ARCHITECTURE BUILDER
+    let result = Task.find(queryObj);
+
+    // D. Dynamic Field Selection Projection (?fields=title,status)
+    if (req.query.fields) {
+        const fieldsList = req.query.fields.split(',').join(' ');
+        result = result.select(fieldsList); // e.g., converts 'title,status' -> 'title status'
+    } else {
+        result = result.select('-__v'); // Exclude mongoose internal version tracker keys by default
+    }
+
+    // E. Existing Sorting Logic Integration
+    if (req.query.sort) {
+        result = result.sort(req.query.sort);
+    } else {
+        // If it's a text search, sort by search match score relevance, otherwise default to newest
+        if (req.query.search) {
+            result = result.sort({ score: { $meta: 'textScore' } });
+        } else {
+            result = result.sort('-createdAt');
+        }
+    }
+
+    // F. Existing Pagination Rules Integration
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+    result = result.skip(skip).limit(limit);
+
+    // Resolve query out of DB
+    const tasks = await result;
+    const totalTasks = await Task.countDocuments(queryObj);
 
     res.status(200).json({
         success: true,
-        message: 'Todo item deleted successfully'
+        results: tasks.length,
+        total: totalTasks,
+        page,
+        pages: Math.ceil(totalTasks / limit),
+        data: tasks
     });
 });
-
-
-const getAllTodos = async (req, res, next) => {
-    try {
-     
-        const todos = await Task.find({ user: req.user.id });
-        
-        res.status(200).json({
-            success: true,
-            count: todos.length,
-            data: todos
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const getTodoById = async (req, res, next) => {
-    try {
-        const Todo = await Task.findById(req.params.id);
-        if (!Todo) {
-            const error = new Error('Todo not found or unauthorized');
-            error.statusCode = 404;
-            return next(error);
-        }
-        if(todo.user.toString() !== req.user.id){
-            const error = new Error('Forbidden: You do not have permission to view this task');
-            error.statusCode = 403;
-            return next(error); 
-        }
-        res.status(200).json({
-            success: true,
-            data: todo
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const createTodo = async (req, res, next) => {
-    try {
-        const { title, description, priority, status } = req.body;
-
-        if (!title) {
-            const error = new Error('Title is required');
-            error.statusCode = 400;
-            return next(error);
-        }
-
-      
-        const newTodo = await Task.create({
-            title,
-            description,
-            priority,
-            status,
-            user: req.user.id 
-        });
-
-        res.status(201).json({
-            success: true,
-            data: newTodo
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-
-const editTodo = async (req, res, next) => {
-    try {
-        const Todo = await Task.findById(req.params.id);
-            if (!Todo) {
-            const error = new Error('Todo not found or unauthorized');
-            error.statusCode = 404;
-            return next(error);
-        }
-
-            if(todo.user.toString() !== req.user.id){
-            const error = new Error('Forbidden: You do not have permission to modify this task');
-            error.statusCode = 403;
-            return next(error); 
-        }
-
-        const updatedTodo = await Task.findByIdAndUpdate(
-            req.params.id, 
-            req.body,
-            { returnDocument: 'after', runValidators: true }
-        );
-        res.status(200).json({
-            success: true,
-            data: updatedTodo
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
 module.exports = {
-    getAllTodos,
+    getTodos,  // 👈 Check spelling! Make sure it's not "getTodos"
     getTodoById,
     createTodo, 
     editTodo,

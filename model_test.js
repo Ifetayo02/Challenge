@@ -44,8 +44,8 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
-app.use('/auth', authLimiter, authRouter); 
-app.use('/tasks', protect, todoRouter); 
+app.use('/api/v1/auth', authLimiter, authRouter);
+app.use('/api/v1/tasks', protect, todoRouter);
 app.use(globalErrorHandler);
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
