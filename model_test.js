@@ -65,6 +65,25 @@ mongoose.connection.on('error', err => {
 mongoose.connection.on('disconnected', () => {
     console.warn('MongoDB disconnected');
 });
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+});
+process.on('unhandledRejection', (err) => {
+    console.log('💥 UNHANDLED REJECTION! Shutting down server gracefully...');
+    console.log(err.name, err.message);
+    if (server) {
+        server.close(() => {
+            process.exit(1);
+        });
+    } else {
+        process.exit(1);
+    }
+});
+process.on('SIGTERM', () => {
+    console.log('👋 SIGTERM RECEIVED. Shutting down gracefully...');
+    if (server) {
+        server.close(() => {
+            console.log('💥 Process terminated safely.');
+        });
+    }
 });

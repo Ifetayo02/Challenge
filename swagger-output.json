@@ -1,12 +1,12 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "ShelfQuest & Tasks Todo API Engine",
+    "title": "Tasks Todo API Engine",
     "description": "Production-grade interactive API documentation suite.",
     "version": "1.0.0"
   },
   "host": "localhost:7000",
-  "basePath": "/api/v1",
+  "basePath": "/",
   "schemes": [
     "http"
   ],

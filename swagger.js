@@ -7,7 +7,7 @@ const doc = {
     version: '1.0.0'
   },
   host: 'localhost:7000',
-  basePath: '/api/v1', // 🎯 Synchronized with yesterday's versioning prefix!
+  basePath: '/', // 🎯 Synchronized with yesterday's versioning prefix!
   schemes: ['http'],
   securityDefinitions: {
     bearerAuth: {
