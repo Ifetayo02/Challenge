@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "NODE_ENV=production node model_test.js",
-    "dev": "nodemon model_test.js"
+    "start": "NODE_ENV=production node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -29,8 +29,4 @@
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1"
   }
-}
-"scripts": {
-  "start": "NODE_ENV=production node index.js",
-  "dev": "nodemon index.js"
 }
