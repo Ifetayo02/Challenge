@@ -1,37 +1,89 @@
 require('dotenv').config();
-const express=require('express');
-const app=express();
+const express = require('express');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger-output.json');
+const app = express();
+const mongoose = require('mongoose');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const cors = require('cors');
+const mongoSanitize = require('express-mongo-sanitize');
+const cookieParser = require('cookie-parser');
+const authRouter = require('./routes/authRoutes');
+const todoRouter = require('./routes/todosRoutes');
+const { protect } = require('./middleware/auth');
+const globalErrorHandler = require('./middleware/errorMiddleware');
+const port = process.env.PORT || 7000;
+app.use((req, res, next) => {
+    Object.defineProperty(req, 'query', { value: req.query, writable: true, configurable: true });
+    next();
+});
+app.use(express.json());
+app.use(cookieParser());
+app.use(helmet());
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:5173' 
+}));
+app.use(
+    mongoSanitize({
+        replaceWith: '_',
+        allowDots: true 
+    })
+);
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 100, 
+    message: { success: false, error: 'Too many requests from this IP, please try again after 15 minutes.' },
+    standardHeaders: true, 
+    legacyHeaders: false, 
+});
+app.use(globalLimiter); 
 
-const router=express.Router();
-const tasks=[
-    {
-        id:1,
-        title:'learn raw node.js'
-    },
-    {
-        id:2,
-        title:'learn express.js'
-    },
-    {
-        id:3,
-        title:'Get familiar with requests type'
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 5, 
+    message: { success: false, error: 'Too many login attempts. Please try again after 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api/v1/auth', authLimiter, authRouter);
+app.use('/api/v1/tasks', protect, todoRouter);
+app.use(globalErrorHandler);
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => {
+        console.log('Connected to MongoDB');
+    })
+    .catch((err) => {
+        console.error('MongoDB connection error:', err.message);
+    });
 
-    }
-]
+mongoose.connection.on('error', err => {
+    console.error('Mongoose runtime error:', err);
+});
 
-router.get('/',(req,res)=>{
-    res.json(tasks);
-})
-router.get('/:id',(req,res)=>{
-    const id=parseInt(req.params.id,10);
-    const task=tasks.find(task=>task.id===id);
-    if (!task) {
-        return res.status(404).json({message:'Task not found'});
-    }res.json(task);
-})
-const port=process.env.PORT || 5634;
-
-app.use('/tasks',router);
-app.listen(port,()=>{
+mongoose.connection.on('disconnected', () => {
+    console.warn('MongoDB disconnected');
+});
+const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-})
+});
+process.on('unhandledRejection', (err) => {
+    console.log('💥 UNHANDLED REJECTION! Shutting down server gracefully...');
+    console.log(err.name, err.message);
+    if (server) {
+        server.close(() => {
+            process.exit(1);
+        });
+    } else {
+        process.exit(1);
+    }
+});
+process.on('SIGTERM', () => {
+    console.log('👋 SIGTERM RECEIVED. Shutting down gracefully...');
+    if (server) {
+        server.close(() => {
+            console.log('💥 Process terminated safely.');
+        });
+    }
+});
